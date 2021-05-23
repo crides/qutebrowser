@@ -24,8 +24,8 @@ import functools
 import weakref
 import datetime
 import dataclasses
-from typing import (
-    Any, Deque, List, Mapping, MutableMapping, MutableSequence, Optional, Tuple)
+from typing import (Any, Deque, List, Mapping,
+                    MutableMapping, MutableSequence, Optional, Tuple)
 
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QApplication
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QTimer, QUrl
@@ -202,6 +202,7 @@ class TabbedBrowser(QWidget):
     resized = pyqtSignal('QRect')
     current_tab_changed = pyqtSignal(browsertab.AbstractTab)
     new_tab = pyqtSignal(browsertab.AbstractTab, int)
+    is_treetabbedbrowser = False
     shutting_down = pyqtSignal()
 
     def __init__(self, *, win_id, private, parent=None):
@@ -447,6 +448,7 @@ class TabbedBrowser(QWidget):
             crashed: Whether we're closing a tab with crashed renderer process.
         """
         idx = self.widget.indexOf(tab)
+
         if idx == -1:
             if crashed:
                 return
@@ -514,15 +516,24 @@ class TabbedBrowser(QWidget):
         entries = self.undo_stack[-depth]
         del self.undo_stack[-depth]
 
+        # we return the tab list because tree_tabs needs it in post_processing
+        new_tabs = []
         for entry in reversed(entries):
             if use_current_tab:
                 newtab = self.widget.widget(0)
                 use_current_tab = False
             else:
-                newtab = self.tabopen(background=False, idx=entry.index)
+                # FIXME:typing mypy thinks this is None due to @pyqtSlot
+                newtab = self.tabopen(
+                    background=False,
+                    related=False,
+                    idx=entry.index
+                )
 
             newtab.history.private_api.deserialize(entry.history)
             newtab.set_pinned(entry.pinned)
+            new_tabs.append(newtab)
+        return new_tabs
 
     @pyqtSlot('QUrl', bool)
     def load_url(self, url, newtab):
@@ -611,7 +622,7 @@ class TabbedBrowser(QWidget):
 
         if idx is None:
             idx = self._get_new_tab_idx(related)
-        self.widget.insertTab(idx, tab, "")
+        idx = self.widget.insertTab(idx, tab, "")
 
         if url is not None:
             tab.load_url(url)

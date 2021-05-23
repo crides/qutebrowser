@@ -51,6 +51,8 @@ if TYPE_CHECKING:
     from qutebrowser.browser import webelem
     from qutebrowser.browser.inspector import AbstractWebInspector
 
+from qutebrowser.mainwindow.treetabwidget import TreeTabWidget
+from qutebrowser.misc.notree import Node
 
 tab_id_gen = itertools.count(0)
 
@@ -967,6 +969,11 @@ class AbstractTab(QWidget):
         self._tab_event_filter = eventfilter.TabEventFilter(
             self, parent=self)
         self.backend: Optional[usertypes.Backend] = None
+
+        if parent and isinstance(parent, TreeTabWidget):
+            self.node: AbstractTab = Node(self, parent=parent.tree_root)
+        else:
+            self.node: AbstractTab = Node(self, parent=None)
 
         # If true, this tab has been requested to be removed (or is removed).
         self.pending_removal = False

@@ -2169,6 +2169,7 @@ tabs.title.format:
       - protocol
       - audio
       - collapsed
+      - collapsed_descendants
       - tree
     none_ok: true
   desc: |
@@ -2212,6 +2213,7 @@ tabs.title.format_pinned:
       - protocol
       - audio
       - collapsed
+      - collapsed_descendants
       - tree
     none_ok: true
   desc: Format to use for the tab title for pinned tabs. The same placeholders

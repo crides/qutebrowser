@@ -43,12 +43,19 @@ class TreeTabWidget(TabWidget):
         self.update_tab_titles()  # Must also be called when deactivating
         self.tree_tab_update()
 
+    def tab_hide(self, idx):
+        tab = self.widget(idx)
+        if tab and tab.node.children:
+            tab.node.collapsed = not tab.node.collapsed
+            self.tree_tab_update()
+
     def get_tab_fields(self, idx):
         """Add tree field data to normal tab field data."""
         fields = super().get_tab_fields(idx)
 
         tab = self.widget(idx)
         fields['collapsed'] = '[...] ' if tab.node.collapsed else ''
+        fields['collapsed_descendants'] = f'[{len(list(tab.node.traverse())) - 1}] ' if tab.node.collapsed else ''
 
         # we remove the first two chars because every tab is child of tree
         # root and that gets rendered as well

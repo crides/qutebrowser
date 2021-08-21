@@ -154,6 +154,18 @@ class MainWindow(QWidget):
             padding-bottom: {{ conf.hints.padding['bottom'] }}px;
         }
 
+        QToolTip {
+            {% if conf.fonts.contextmenu %}
+                font: {{ conf.fonts.contextmenu }};
+            {% endif %}
+            {% if conf.colors.contextmenu.menu.bg %}
+                background-color: {{ conf.colors.contextmenu.menu.bg }};
+            {% endif %}
+            {% if conf.colors.contextmenu.menu.fg %}
+                color: {{ conf.colors.contextmenu.menu.fg }};
+            {% endif %}
+        }
+
         QMenu {
             {% if conf.fonts.contextmenu %}
                 font: {{ conf.fonts.contextmenu }};

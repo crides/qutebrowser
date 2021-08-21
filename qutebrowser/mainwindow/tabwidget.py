@@ -63,6 +63,7 @@ class TabWidget(QTabWidget):
         bar.tabMoved.connect(self.update_tab_titles)
         bar.currentChanged.connect(self._on_current_changed)
         bar.new_tab_requested.connect(self._on_new_tab_requested)
+        bar.tab_hide_requested.connect(self._on_tab_hide_requested)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setDocumentMode(True)
         self.setElideMode(Qt.ElideRight)
@@ -166,6 +167,7 @@ class TabWidget(QTabWidget):
         fields['private'] = ' [Private Mode] ' if tab.is_private else ''
         fields['tree'] = ''
         fields['collapsed'] = ''
+        fields['collapsed_descendants'] = ''
 
         try:
             if tab.audio.is_muted():
@@ -314,6 +316,14 @@ class TabWidget(QTabWidget):
         """Open a new tab."""
         self.new_tab_requested.emit(config.val.url.default_page, False, False)
 
+    @pyqtSlot(int)
+    def _on_tab_hide_requested(self, idx):
+        """Open a new tab."""
+        self.tab_hide(idx)
+
+    def tab_hide(self, idx):
+        pass
+
     def tab_url(self, idx):
         """Get the URL of the tab at the given index.
 
@@ -381,6 +391,7 @@ class TabBar(QTabBar):
     """
 
     new_tab_requested = pyqtSignal()
+    tab_hide_requested = pyqtSignal(int)
 
     def __init__(self, win_id, parent=None):
         super().__init__(parent)
@@ -518,8 +529,7 @@ class TabBar(QTabBar):
         Also keep track of if we are currently in a drag."""
         self.drag_in_progress = True
         button = config.val.tabs.close_mouse_button
-        if (e.button() == Qt.RightButton and button == 'right' or
-                e.button() == Qt.MiddleButton and button == 'middle'):
+        def _handle_close(e):
             e.accept()
             idx = self.tabAt(e.pos())
             if idx == -1:
@@ -534,8 +544,22 @@ class TabBar(QTabBar):
                 elif action == 'close-last':
                     idx = self.count() - 1
             self.tabCloseRequested.emit(idx)
-            return
-        super().mousePressEvent(e)
+        def _handle_hide(e):
+            e.accept()
+            idx = self.tabAt(e.pos())
+            self.tab_hide_requested.emit(idx)
+        if e.button() == Qt.RightButton:
+            if button == 'right':
+                _handle_close(e)
+            else:
+                _handle_hide(e)
+        elif e.button() == Qt.MiddleButton:
+            if button == 'middle':
+                _handle_close(e)
+            else:
+                _handle_hide(e)
+        else:
+            super().mousePressEvent(e)
 
     def minimumTabSizeHint(self, index: int, ellipsis: bool = True) -> QSize:
         """Set the minimum tab size to indicator/icon/... text.

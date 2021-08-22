@@ -27,7 +27,7 @@ import html
 import enum
 import dataclasses
 from string import ascii_lowercase
-from typing import (TYPE_CHECKING, Callable, Dict, Iterable, Iterator, List, Mapping,
+from typing import (TYPE_CHECKING, Callable, Dict, DefaultDict, Iterable, Iterator, List, Mapping,
                     MutableSequence, Optional, Sequence, Set)
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, Qt, QUrl
@@ -194,7 +194,7 @@ class HintContext:
     group: str
 
     all_labels: List[HintLabel] = dataclasses.field(default_factory=list)
-    labels: Dict[str, HintLabel] = dataclasses.field(default_factory=dict)
+    labels: DefaultDict[str, List[HintLabel]] = dataclasses.field(default_factory=lambda: collections.defaultdict(list))
     to_follow: Optional[str] = None
     first_run: bool = True
     filterstr: Optional[str] = None
@@ -467,6 +467,22 @@ class HintManager(QObject):
         else:
             return self._hint_linear(min_chars, chars, elems)
 
+    def _get_unique_elems_num(self, elems: _ElemsType) -> int:
+        elems_num = 0
+        links = set()
+        for elem in elems:
+            if "href" in elem:
+                link = elem["href"]
+                # TODO Append base URL to the start
+                if link not in links:
+                    links.add(link)
+                    elems_num += 1
+                else:
+                    pass
+            else:
+                elems_num += 1
+        return elems_num
+
     def _hint_scattered(self, min_chars: int,
                         chars: str,
                         elems: _ElemsType) -> _HintStringsType:
@@ -480,7 +496,8 @@ class HintManager(QObject):
         # Determine how many digits the link hints will require in the worst
         # case. Usually we do not need all of these digits for every link
         # single hint, so we can show shorter hints for a few of the links.
-        needed = max(min_chars, utils.ceil_log(len(elems), len(chars)))
+        elems_num = self._get_unique_elems_num(elems)
+        needed = max(min_chars, utils.ceil_log(elems_num, len(chars)))
 
         # Short hints are the number of hints we can possibly show which are
         # (needed - 1) digits in length.
@@ -488,11 +505,11 @@ class HintManager(QObject):
             total_space = len(chars) ** needed
             # For each 1 short link being added, len(chars) long links are
             # removed, therefore the space removed is len(chars) - 1.
-            short_count = (total_space - len(elems)) // (len(chars) - 1)
+            short_count = (total_space - elems_num) // (len(chars) - 1)
         else:
             short_count = 0
 
-        long_count = len(elems) - short_count
+        long_count = elems_num - short_count
 
         strings = []
 
@@ -504,7 +521,22 @@ class HintManager(QObject):
         for i in range(start, start + long_count):
             strings.append(self._number_to_hint_str(i, chars, needed))
 
-        return self._shuffle_hints(strings, len(chars))
+        shuffled = self._shuffle_hints(strings, len(chars))
+        links = {}
+        hints = []
+        for elem in elems:
+            hint = None
+            if "href" in elem:
+                link = elem["href"]
+                # TODO Append base URL to the start
+                hint = links.get(link)
+            if not hint:
+                hint = shuffled.pop(0)
+                if "href" in elem:
+                    link = elem["href"]
+                    links[link] = hint
+            hints.append(hint)
+        return hints
 
     def _hint_linear(self, min_chars: int,
                      chars: str,
@@ -517,9 +549,23 @@ class HintManager(QObject):
             elems: The elements to generate labels for.
         """
         strings = []
-        needed = max(min_chars, utils.ceil_log(len(elems), len(chars)))
-        for i in range(len(elems)):
-            strings.append(self._number_to_hint_str(i, chars, needed))
+        elems_num = self._get_unique_elems_num(elems)
+        needed = max(min_chars, utils.ceil_log(elems_num, len(chars)))
+        links = {}
+        index = 0
+        for elem in elems:
+            hint = None
+            if "href" in elem:
+                link = elem["href"]
+                # TODO Append base URL to the start
+                hint = links.get(link)
+            if not hint:
+                hint = self._number_to_hint_str(index, chars, needed)
+                index += 1
+                if "href" in elem:
+                    link = elem["href"]
+                    links[link] = hint
+            strings.append(hint)
         return strings
 
     def _shuffle_hints(self, hints: _HintStringsType,
@@ -653,7 +699,7 @@ class HintManager(QObject):
             label = HintLabel(elem, self._context)
             label.update_text('', string)
             self._context.all_labels.append(label)
-            self._context.labels[string] = label
+            self._context.labels[string].append(label)
 
         keyparser = self._get_keyparser(usertypes.KeyMode.hint)
         keyparser.update_bindings(strings)
@@ -827,9 +873,10 @@ class HintManager(QObject):
         assert self._context is not None
 
         if visible is None:
-            visible = {string: label
-                       for string, label in self._context.labels.items()
-                       if label.isVisible()}
+            # Use the first one cuz all of them are equivalent
+            visible = {string: labels[0]
+                       for string, labels in self._context.labels.items()
+                       if labels[0].isVisible()}
 
         if len(visible) != 1:
             return
@@ -865,20 +912,22 @@ class HintManager(QObject):
             log.hints.debug("Got key without context!")
             return
         log.hints.debug("Handling new keystring: '{}'".format(keystr))
-        for string, label in self._context.labels.items():
+        for string, labels in self._context.labels.items():
             try:
                 if string.startswith(keystr):
                     matched = string[:len(keystr)]
                     rest = string[len(keystr):]
-                    label.update_text(matched, rest)
-                    # Show label again if it was hidden before
-                    label.show()
+                    for label in labels:
+                        label.update_text(matched, rest)
+                        # Show label again if it was hidden before
+                        label.show()
                 else:
                     # element doesn't match anymore -> hide it, unless in rapid
                     # mode and hide_unmatched_rapid_hints is false (see #1799)
                     if (not self._context.rapid or
                             config.val.hints.hide_unmatched_rapid_hints):
-                        label.hide()
+                        for label in labels:
+                            label.hide()
             except webelem.Error:
                 pass
         self._handle_auto_follow(keystr=keystr)
@@ -922,6 +971,7 @@ class HintManager(QObject):
             return
 
         if self._context.hint_mode == 'number':
+            # FIXME 
             # renumber filtered hints
             strings = self._hint_strings([label.elem for label in visible])
             self._context.labels = {}
@@ -969,7 +1019,7 @@ class HintManager(QObject):
             Target.fill: self._actions.preset_cmd_text,
             Target.spawn: self._actions.spawn,
         }
-        elem = self._context.labels[keystr].elem
+        elem = self._context.labels[keystr][0].elem
 
         if not elem.has_frame():
             message.error("This element has no webframe.")
@@ -997,8 +1047,9 @@ class HintManager(QObject):
             # Reset filtering
             self.filter_hints(None)
             # Undo keystring highlighting
-            for string, label in self._context.labels.items():
-                label.update_text('', string)
+            for string, labels in self._context.labels.items():
+                for label in labels:
+                    label.update_text('', string)
 
         try:
             handler()
@@ -1167,10 +1218,20 @@ class WordHinter:
         hints = []
         used_hints: Set[str] = set()
         words = iter(self.words)
+        links = {}
         for elem in elems:
-            hint = self.new_hint_for(elem, used_hints, words)
+            hint = None
+            if "href" in elem:
+                link = elem["href"]
+                # TODO Append base URL to the start
+                hint = links.get(link)
             if not hint:
-                raise HintingError("Not enough words in the dictionary.")
+                hint = self.new_hint_for(elem, used_hints, words)
+                if not hint:
+                    raise HintingError("Not enough words in the dictionary.")
+                if "href" in elem:
+                    link = elem["href"]
+                    links[link] = hint
             used_hints.add(hint)
             hints.append(hint)
         return hints

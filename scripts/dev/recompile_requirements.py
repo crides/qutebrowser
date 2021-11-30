@@ -27,6 +27,8 @@ import glob
 import subprocess
 import tempfile
 import argparse
+import shutil
+import pathlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir,
                                 os.pardir))
@@ -73,13 +75,13 @@ CHANGELOG_URLS = {
     'PyYAML': 'https://github.com/yaml/pyyaml/blob/master/CHANGES',
     'pytest-bdd': 'https://github.com/pytest-dev/pytest-bdd/blob/master/CHANGES.rst',
     'snowballstemmer': 'https://github.com/snowballstem/snowball/blob/master/NEWS',
-    'virtualenv': 'https://virtualenv.pypa.io/en/latest/changelog.html',
+    'virtualenv': 'https://github.com/pypa/virtualenv/blob/main/docs/changelog.rst',
     'packaging': 'https://packaging.pypa.io/en/latest/changelog.html',
     'build': 'https://github.com/pypa/build/blob/main/CHANGELOG.rst',
     'attrs': 'https://www.attrs.org/en/stable/changelog.html',
     'Jinja2': 'https://jinja.palletsprojects.com/en/latest/changes/',
     'MarkupSafe': 'https://markupsafe.palletsprojects.com/en/latest/changes/',
-    'flake8': 'https://gitlab.com/pycqa/flake8/tree/master/docs/source/release-notes',
+    'flake8': 'https://github.com/PyCQA/flake8/tree/main/docs/source/release-notes',
     'flake8-docstrings': 'https://pypi.org/project/flake8-docstrings/',
     'flake8-debugger': 'https://github.com/JBKahn/flake8-debugger/',
     'flake8-builtins': 'https://github.com/gforcada/flake8-builtins/blob/master/CHANGES.rst',
@@ -137,11 +139,10 @@ CHANGELOG_URLS = {
     'pep517': 'https://github.com/pypa/pep517/blob/master/doc/changelog.rst',
     'cryptography': 'https://cryptography.io/en/latest/changelog.html',
     'toml': 'https://github.com/uiri/toml/releases',
+    'tomli': 'https://github.com/hukkin/tomli/blob/master/CHANGELOG.md',
     'PyQt5': 'https://www.riverbankcomputing.com/news',
-    'PyQt5-Qt': 'https://www.riverbankcomputing.com/news',
     'PyQt5-Qt5': 'https://www.riverbankcomputing.com/news',
     'PyQtWebEngine': 'https://www.riverbankcomputing.com/news',
-    'PyQtWebEngine-Qt': 'https://www.riverbankcomputing.com/news',
     'PyQtWebEngine-Qt5': 'https://www.riverbankcomputing.com/news',
     'PyQt-builder': 'https://www.riverbankcomputing.com/news',
     'PyQt5-sip': 'https://www.riverbankcomputing.com/news',
@@ -154,8 +155,10 @@ CHANGELOG_URLS = {
     'cheroot': 'https://cheroot.cherrypy.org/en/latest/history.html',
     'certifi': 'https://ccadb-public.secure.force.com/mozilla/IncludedCACertificateReport',
     'chardet': 'https://github.com/chardet/chardet/releases',
+    'charset-normalizer': 'https://github.com/Ousret/charset_normalizer/commits/master',
     'idna': 'https://github.com/kjd/idna/blob/master/HISTORY.rst',
     'tldextract': 'https://github.com/john-kurkowski/tldextract/blob/master/CHANGELOG.md',
+    'backports.entry-points-selectable': 'https://github.com/jaraco/backports.entry_points_selectable/blob/main/CHANGES.rst',
     'typing-extensions': 'https://github.com/python/typing/commits/master/typing_extensions',
     'diff-cover': 'https://github.com/Bachmann1234/diff_cover/blob/master/CHANGELOG',
     'pytest-icdiff': 'https://github.com/hjwp/pytest-icdiff/blob/master/HISTORY.rst',
@@ -165,12 +168,12 @@ CHANGELOG_URLS = {
     'check-manifest': 'https://github.com/mgedmin/check-manifest/blob/master/CHANGES.rst',
     'yamllint': 'https://github.com/adrienverge/yamllint/blob/master/CHANGELOG.rst',
     'pathspec': 'https://github.com/cpburnz/python-path-specification/blob/master/CHANGES.rst',
-    'filelock': 'https://github.com/benediktschmitt/py-filelock/commits/master',
+    'filelock': 'https://github.com/tox-dev/py-filelock/blob/main/docs/changelog.rst',
     'github3.py': 'https://github3py.readthedocs.io/en/master/release-notes/index.html',
     'manhole': 'https://github.com/ionelmc/python-manhole/blob/master/CHANGELOG.rst',
     'pycparser': 'https://github.com/eliben/pycparser/blob/master/CHANGES',
     'python-dateutil': 'https://dateutil.readthedocs.io/en/stable/changelog.html',
-    'appdirs': 'https://github.com/ActiveState/appdirs/blob/master/CHANGES.rst',
+    'platformdirs': 'https://github.com/platformdirs/platformdirs/blob/main/CHANGES.rst',
     'pluggy': 'https://github.com/pytest-dev/pluggy/blob/master/CHANGELOG.rst',
     'inflect': 'https://github.com/jazzband/inflect/blob/master/CHANGES.rst',
     'jinja2-pluralize': 'https://github.com/audreyfeldroy/jinja2_pluralize/blob/master/HISTORY.rst',
@@ -235,6 +238,7 @@ def read_comments(fobj):
         'add': [],
         'replace': {},
         'pre': False,
+        'pip_args': [],
     }
     for line in fobj:
         if line.startswith('#@'):
@@ -264,6 +268,8 @@ def read_comments(fobj):
                 comments['add'].append(args)
             elif command == 'pre':
                 comments['pre'] = True
+            elif command == 'pip_args':
+                comments['pip_args'] += args.split()
     return comments
 
 
@@ -287,7 +293,7 @@ def run_pip(venv_dir, *args, quiet=False, **kwargs):
     return subprocess.run([venv_python, '-m', 'pip'] + args, check=True, **kwargs)
 
 
-def init_venv(host_python, venv_dir, requirements, pre=False):
+def init_venv(host_python, venv_dir, requirements, pre=False, pip_args=None):
     """Initialize a new virtualenv and install the given packages."""
     with utils.gha_group('Creating virtualenv'):
         utils.print_col('$ python3 -m venv {}'.format(venv_dir), 'blue')
@@ -299,6 +305,8 @@ def init_venv(host_python, venv_dir, requirements, pre=False):
     install_command = ['install', '-r', requirements]
     if pre:
         install_command.append('--pre')
+    if pip_args:
+        install_command += pip_args
 
     with utils.gha_group('Installing requirements'):
         run_pip(venv_dir, *install_command)
@@ -494,7 +502,8 @@ def build_requirements(name):
         init_venv(host_python=host_python,
                   venv_dir=tmpdir,
                   requirements=filename,
-                  pre=comments['pre'])
+                  pre=comments['pre'],
+                  pip_args=comments['pip_args'])
         with utils.gha_group('Freezing requirements'):
             args = ['--all'] if name == 'tox' else []
             proc = run_pip(tmpdir, 'freeze', *args, stdout=subprocess.PIPE)
@@ -553,9 +562,20 @@ def test_requirements(name, outfile, *, force=False):
         print(f"Skipping test as there were no changes for {name}.")
         return
 
+    in_file = os.path.join(REQ_DIR, 'requirements-{}.txt-raw'.format(name))
+    with open(in_file, 'r', encoding='utf-8') as f:
+        comments = read_comments(f)
+
     host_python = get_host_python(name)
     with tempfile.TemporaryDirectory() as tmpdir:
-        init_venv(host_python, tmpdir, outfile)
+        init_venv(host_python, tmpdir, outfile, pip_args=comments['pip_args'])
+
+
+def cleanup_pylint_build():
+    """Clean up pylint_checkers build files."""
+    path = pathlib.Path(__file__).parent / 'pylint_checkers' / 'build'
+    utils.print_col(f'$ rm -r {path}', 'blue')
+    shutil.rmtree(path)
 
 
 def main():
@@ -571,6 +591,8 @@ def main():
         utils.print_title(name)
         outfile = build_requirements(name)
         test_requirements(name, outfile, force=args.force_test)
+        if name == 'pylint':
+            cleanup_pylint_build()
 
     utils.print_title('Testing via tox')
     if args.names and not args.force_test:

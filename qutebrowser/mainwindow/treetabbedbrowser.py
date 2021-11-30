@@ -21,6 +21,7 @@
 
 import collections
 import dataclasses
+import datetime
 from typing import List, Dict
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtCore import pyqtSlot, QUrl
@@ -44,6 +45,8 @@ class _TreeUndoEntry():
     parent_node_uid: int
     children_node_uids: List[int]
     local_index: int  # index of the tab relative to its siblings
+    created_at: datetime.datetime = dataclasses.field(
+        default_factory=datetime.datetime.now)
 
     @staticmethod
     def from_node(node, idx):
@@ -135,11 +138,11 @@ class TreeTabbedBrowser(TabbedBrowser):
         self.widget.tree_tab_update()
 
     def _add_undo_entry(self, tab, idx, new_undo):
-        """Save undo entry with tree information.  This function was removed in
-        tabbedbrowser, but it is still useful here because the mechanism is
-        quite a bit more complex
-        """
+        """Save undo entry with tree information.
 
+        This function was removed in tabbedbrowser, but it is still useful here because
+        the mechanism is quite a bit more complex
+        """
         # TODO see if it's possible to remove duplicate code from
         # super()._add_undo_entry
         try:
@@ -255,12 +258,13 @@ class TreeTabbedBrowser(TabbedBrowser):
             pos = config.val.tabs.new_position.tree.new_toplevel
             parent = self.widget.tree_root
 
-        self._position_tab(tab, pos, parent, sibling, related, background)
+        self._position_tab(cur_tab, tab, pos, parent, sibling, related, background)
 
         return tab
 
     def _position_tab(
         self,
+        cur_tab: browsertab.AbstractTab,
         tab: browsertab.AbstractTab,
         pos: str,
         parent: notree.Node,
@@ -268,7 +272,6 @@ class TreeTabbedBrowser(TabbedBrowser):
         related: bool = True,
         background: bool = None,
     ) -> None:
-        cur_tab = self.widget.currentWidget()
         toplevel = not sibling and not related
         siblings = list(parent.children)
         if tab.node in siblings:  # true if parent is tree_root

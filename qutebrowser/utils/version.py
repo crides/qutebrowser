@@ -514,7 +514,8 @@ def _get_pyqt_webengine_qt_version() -> Optional[str]:
         import importlib_metadata
     except ImportError:
         try:
-            import importlib.metadata as importlib_metadata  # type: ignore[no-redef]
+            # pylint: disable=line-too-long
+            import importlib.metadata as importlib_metadata  # type: ignore[import, no-redef]
         except ImportError:
             log.misc.debug("Neither importlib.metadata nor backport available")
             return None
@@ -773,8 +774,6 @@ def _backend() -> str:
     if objects.backend == usertypes.Backend.QtWebKit:
         return 'new QtWebKit (WebKit {})'.format(qWebKitVersion())
     elif objects.backend == usertypes.Backend.QtWebEngine:
-        webengine = usertypes.Backend.QtWebEngine
-        assert objects.backend == webengine, objects.backend
         return str(qtwebengine_versions(
             avoid_init='avoid-chromium-init' in objects.debug_flags))
     raise utils.Unreachable(objects.backend)

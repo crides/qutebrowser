@@ -1629,11 +1629,16 @@ hints.selectors:
       - '[role="link"]'
       - '[role="option"]'
       - '[role="button"]'
+      - '[role="tab"]'
+      - '[role="checkbox"]'
+      - '[role="menuitem"]'
+      - '[role="menuitemcheckbox"]'
+      - '[role="menuitemradio"]'
       - '[ng-click]'
       - '[ngClick]'
       - '[data-ng-click]'
       - '[x-ng-click]'
-      - '[tabindex]'
+      - '[tabindex]:not([tabindex="-1"])'
     links:
       - 'a[href]'
       - 'area[href]'
@@ -1793,6 +1798,17 @@ input.media_keys:
     Whether the underlying Chromium should handle media keys.
 
     On Linux, disabling this also disables Chromium's MPRIS integration.
+
+input.match_counts:
+  default: true
+  type: Bool
+  desc: >-
+    Interpret number prefixes as counts for bindings.
+
+    This enables for vi-like bindings that can be prefixed with a number to
+    indicate a count.
+    Disabling it allows for emacs-like bindings where number keys are passed
+    through (according to `input.forward_unbound_keys`) instead.
 
 ## keyhint
 

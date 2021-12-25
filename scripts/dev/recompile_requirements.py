@@ -47,7 +47,7 @@ CHANGELOG_URLS = {
     'mccabe': 'https://github.com/PyCQA/mccabe#changes',
     'pytest-cov': 'https://github.com/pytest-dev/pytest-cov/blob/master/CHANGELOG.rst',
     'pytest-xdist': 'https://github.com/pytest-dev/pytest-xdist/blob/master/CHANGELOG.rst',
-    'pytest-forked': 'https://github.com/pytest-dev/pytest-forked/blob/master/CHANGELOG',
+    'pytest-forked': 'https://github.com/pytest-dev/pytest-forked/blob/master/CHANGELOG.rst',
     'pytest-xvfb': 'https://github.com/The-Compiler/pytest-xvfb/blob/master/CHANGELOG.rst',
     'EasyProcess': 'https://github.com/ponty/EasyProcess/commits/master',
     'PyVirtualDisplay': 'https://github.com/ponty/PyVirtualDisplay/commits/master',
@@ -133,7 +133,7 @@ CHANGELOG_URLS = {
     'six': 'https://github.com/benjaminp/six/blob/master/CHANGES',
     'altgraph': 'https://github.com/ronaldoussoren/altgraph/blob/master/doc/changelog.rst',
     'urllib3': 'https://github.com/urllib3/urllib3/blob/master/CHANGES.rst',
-    'lxml': 'https://lxml.de/index.html#old-versions',
+    'lxml': 'https://github.com/lxml/lxml/blob/master/CHANGES.txt',
     'jwcrypto': 'https://github.com/latchset/jwcrypto/commits/master',
     'wrapt': 'https://github.com/GrahamDumpleton/wrapt/blob/develop/docs/changes.rst',
     'pep517': 'https://github.com/pypa/pep517/blob/master/doc/changelog.rst',
@@ -150,16 +150,16 @@ CHANGELOG_URLS = {
     'sip': 'https://www.riverbankcomputing.com/news',
     'Pygments': 'https://pygments.org/docs/changelog/',
     'vulture': 'https://github.com/jendrikseipp/vulture/blob/master/CHANGELOG.md',
-    'distlib': 'https://bitbucket.org/pypa/distlib/src/master/CHANGES.rst',
+    'distlib': 'https://github.com/pypa/distlib/blob/master/CHANGES.rst',
     'py-cpuinfo': 'https://github.com/workhorsy/py-cpuinfo/blob/master/ChangeLog',
     'cheroot': 'https://cheroot.cherrypy.org/en/latest/history.html',
     'certifi': 'https://ccadb-public.secure.force.com/mozilla/IncludedCACertificateReport',
     'chardet': 'https://github.com/chardet/chardet/releases',
-    'charset-normalizer': 'https://github.com/Ousret/charset_normalizer/commits/master',
+    'charset-normalizer': 'https://github.com/Ousret/charset_normalizer/blob/master/CHANGELOG.md',
     'idna': 'https://github.com/kjd/idna/blob/master/HISTORY.rst',
     'tldextract': 'https://github.com/john-kurkowski/tldextract/blob/master/CHANGELOG.md',
     'backports.entry-points-selectable': 'https://github.com/jaraco/backports.entry_points_selectable/blob/main/CHANGES.rst',
-    'typing-extensions': 'https://github.com/python/typing/commits/master/typing_extensions',
+    'typing_extensions': 'https://github.com/python/typing/blob/master/typing_extensions/CHANGELOG',
     'diff-cover': 'https://github.com/Bachmann1234/diff_cover/blob/master/CHANGELOG',
     'pytest-icdiff': 'https://github.com/hjwp/pytest-icdiff/blob/master/HISTORY.rst',
     'icdiff': 'https://github.com/jeffkaufman/icdiff/blob/master/ChangeLog',
@@ -175,8 +175,6 @@ CHANGELOG_URLS = {
     'python-dateutil': 'https://dateutil.readthedocs.io/en/stable/changelog.html',
     'platformdirs': 'https://github.com/platformdirs/platformdirs/blob/main/CHANGES.rst',
     'pluggy': 'https://github.com/pytest-dev/pluggy/blob/master/CHANGELOG.rst',
-    'inflect': 'https://github.com/jazzband/inflect/blob/master/CHANGES.rst',
-    'jinja2-pluralize': 'https://github.com/audreyfeldroy/jinja2_pluralize/blob/master/HISTORY.rst',
     'mypy-extensions': 'https://github.com/python/mypy_extensions/commits/master',
     'pyroma': 'https://github.com/regebro/pyroma/blob/master/HISTORY.txt',
     'adblock': 'https://github.com/ArniDagur/python-adblock/blob/master/CHANGELOG.md',
@@ -190,6 +188,17 @@ CHANGELOG_URLS = {
     'future': 'https://python-future.org/whatsnew.html',
     'pefile': 'https://github.com/erocarrera/pefile/commits/master',
     'Deprecated': 'https://github.com/tantale/deprecated/blob/master/CHANGELOG.rst',
+    'SecretStorage': 'https://github.com/mitya57/secretstorage/blob/master/changelog',
+    'bleach': 'https://github.com/mozilla/bleach/blob/main/CHANGES',
+    'jeepney': 'https://gitlab.com/takluyver/jeepney/-/blob/master/docs/release-notes.rst',
+    'keyring': 'https://github.com/jaraco/keyring/blob/main/CHANGES.rst',
+    'pkginfo': 'https://bazaar.launchpad.net/~tseaver/pkginfo/trunk/view/head:/CHANGES.txt',
+    'readme-renderer': 'https://github.com/pypa/readme_renderer/blob/main/CHANGES.rst',
+    'requests-toolbelt': 'https://github.com/requests/toolbelt/blob/master/HISTORY.rst',
+    'rfc3986': 'https://rfc3986.readthedocs.io/en/latest/release-notes/index.html',
+    'tqdm': 'https://tqdm.github.io/releases/',
+    'twine': 'https://twine.readthedocs.io/en/stable/changelog.html',
+    'webencodings': 'https://github.com/gsnedders/python-webencodings/commits/master',
 }
 
 
@@ -383,15 +392,21 @@ def _get_changed_files():
 
 def parse_versioned_line(line):
     """Parse a requirements.txt line into name/version."""
-    if '==' in line:
-        if line[0] == '#':  # ignored dependency
-            line = line[1:].strip()
+    if line[0] == '#':  # ignored dependency
+        line = line[1:].strip()
 
-        # Strip comments and pip environment markers
-        line = line.rsplit('#', maxsplit=1)[0]
-        line = line.split(';')[0].strip()
+    # Strip comments and pip environment markers
+    line = line.rsplit('#', maxsplit=1)[0]
+    line = line.split(';')[0].strip()
 
-        name, version = line.split('==')
+    ops = ["==", "~=", "!=", ">", "<", ">=", "<="]
+
+    if any(op in line for op in ops):
+        # strictly speaking, this version isn't necessarily correct, but it's
+        # enough for the table.
+        for op in ops:
+            if op in line:
+                name, version = line.split(op)
     elif line.startswith('-e'):
         rest, name = line.split('#egg=')
         version = rest.split('@')[1][:7]

@@ -571,6 +571,10 @@ class TabBar(QTabBar):
                 _handle_close(e)
             else:
                 _handle_hide(e)
+        elif e.button() == Qt.BackButton:
+            self.setCurrentIndex((self.currentIndex() + 1) % self.count())
+        elif e.button() == Qt.ForwardButton:
+            self.setCurrentIndex((self.currentIndex() - 1) % self.count())
         else:
             super().mousePressEvent(e)
 

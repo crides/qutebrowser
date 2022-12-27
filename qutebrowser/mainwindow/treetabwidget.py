@@ -35,7 +35,7 @@ class TreeTabWidget(TabWidget):
         # root of the tab tree, common for all tabs in the window
         self.tree_root = Node(None)
         super().__init__(win_id, parent)
-        self.tabBar().tabMoved.disconnect(self.update_tab_titles)
+        self.tab_bar().tabMoved.disconnect(self.update_tab_titles)
 
     def _init_config(self):
         super()._init_config()
@@ -76,7 +76,7 @@ class TreeTabWidget(TabWidget):
         for idx, node in enumerate(nodes):
             if idx > 0:
                 cur_idx = self.indexOf(node.value)
-                self.tabBar().moveTab(cur_idx, idx-1)
+                self.tab_bar().moveTab(cur_idx, idx-1)
 
     def update_tree_tab_visibility(self):
         """Hide collapsed tabs and show uncollapsed ones.

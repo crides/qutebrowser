@@ -536,7 +536,7 @@ class TabWidgetStub(QObject):
     def page_title(self, i):
         return self.tabs[i].title()
 
-    def tabBar(self):
+    def tab_bar(self):
         return self._qtabbar
 
     def indexOf(self, _tab):

@@ -64,12 +64,12 @@ class TestTabWidget:
         for i in range(num_tabs):
             widget.addTab(fake_web_tab(), 'foobar' + str(i))
 
-        first_size = widget.tabBar().tabSizeHint(0)
-        first_size_min = widget.tabBar().minimumTabSizeHint(0)
+        first_size = widget.tab_bar().tabSizeHint(0)
+        first_size_min = widget.tab_bar().minimumTabSizeHint(0)
 
         for i in range(num_tabs):
-            assert first_size == widget.tabBar().tabSizeHint(i)
-            assert first_size_min == widget.tabBar().minimumTabSizeHint(i)
+            assert first_size == widget.tab_bar().tabSizeHint(i)
+            assert first_size_min == widget.tab_bar().minimumTabSizeHint(i)
 
     @pytest.mark.parametrize("shrink_pinned", [True, False])
     @pytest.mark.parametrize("vertical", [True, False])
@@ -98,18 +98,18 @@ class TestTabWidget:
             tab = widget.widget(num)
             tab.set_pinned(True)
 
-        first_size = widget.tabBar().tabSizeHint(0)
-        first_size_min = widget.tabBar().minimumTabSizeHint(0)
+        first_size = widget.tab_bar().tabSizeHint(0)
+        first_size_min = widget.tab_bar().minimumTabSizeHint(0)
 
         for i in range(num_tabs):
             if i in pinned_num and shrink_pinned and not vertical:
                 assert (first_size.width() >
-                        widget.tabBar().tabSizeHint(i).width())
+                        widget.tab_bar().tabSizeHint(i).width())
                 assert (first_size_min.width() <
-                        widget.tabBar().minimumTabSizeHint(i).width())
+                        widget.tab_bar().minimumTabSizeHint(i).width())
             else:
-                assert first_size == widget.tabBar().tabSizeHint(i)
-                assert first_size_min == widget.tabBar().minimumTabSizeHint(i)
+                assert first_size == widget.tab_bar().tabSizeHint(i)
+                assert first_size_min == widget.tab_bar().minimumTabSizeHint(i)
 
     @pytest.mark.parametrize("num_tabs", [4, 10, 50, 100])
     def test_update_tab_titles_benchmark(self, benchmark, widget,
@@ -126,23 +126,23 @@ class TestTabWidget:
     def test_tab_min_width(self, widget, fake_web_tab, config_stub, qtbot):
         widget.addTab(fake_web_tab(), 'foobar')
         widget.addTab(fake_web_tab(), 'foobar1')
-        min_size = widget.tabBar().tabRect(0).width() + 10
+        min_size = widget.tab_bar().tabRect(0).width() + 10
         config_stub.val.tabs.min_width = min_size
-        assert widget.tabBar().tabRect(0).width() == min_size
+        assert widget.tab_bar().tabRect(0).width() == min_size
 
     def test_tab_max_width(self, widget, fake_web_tab, config_stub, qtbot):
         widget.addTab(fake_web_tab(), 'foobar')
-        max_size = widget.tabBar().tabRect(0).width() - 10
+        max_size = widget.tab_bar().tabRect(0).width() - 10
         config_stub.val.tabs.max_width = max_size
-        assert widget.tabBar().tabRect(0).width() == max_size
+        assert widget.tab_bar().tabRect(0).width() == max_size
 
     def test_tab_stays_hidden(self, widget, fake_web_tab, config_stub):
-        assert widget.tabBar().isVisible()
+        assert widget.tab_bar().isVisible()
         config_stub.val.tabs.show = "never"
-        assert not widget.tabBar().isVisible()
+        assert not widget.tab_bar().isVisible()
         for i in range(12):
             widget.addTab(fake_web_tab(), 'foobar' + str(i))
-        assert not widget.tabBar().isVisible()
+        assert not widget.tab_bar().isVisible()
 
     @pytest.mark.parametrize("num_tabs", [4, 70])
     @pytest.mark.parametrize("rev", [True, False])
@@ -167,5 +167,5 @@ class TestTabWidget:
     def test_tab_pinned_benchmark(self, benchmark, widget, fake_web_tab):
         """Benchmark for _tab_pinned."""
         widget.addTab(fake_web_tab(), 'foobar')
-        tab_bar = widget.tabBar()
+        tab_bar = widget.tab_bar()
         benchmark(functools.partial(tab_bar._tab_pinned, 0))

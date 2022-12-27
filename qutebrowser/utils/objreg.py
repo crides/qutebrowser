@@ -205,7 +205,7 @@ def _get_window_registry(window: _WindowTab) -> ObjectRegistry:
         raise RegistryUnavailableError('window')
 
     try:
-        return win.registry
+        return win.registry  # type: ignore[attr-defined]
     except AttributeError:
         raise RegistryUnavailableError('window')
 

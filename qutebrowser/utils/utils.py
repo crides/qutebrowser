@@ -26,6 +26,7 @@ import re
 import sys
 import enum
 import json
+import fnmatch
 import datetime
 import traceback
 import functools
@@ -33,7 +34,7 @@ import contextlib
 import shlex
 import mimetypes
 from typing import (Any, Callable, IO, Iterator,
-                    Optional, Sequence, Tuple, Type, Union,
+                    Optional, Sequence, Tuple, List, Type, Union,
                     TypeVar, TYPE_CHECKING)
 try:
     # Protocol was added in Python 3.8
@@ -44,7 +45,7 @@ except ImportError:  # pragma: no cover
 
             """Empty stub at runtime."""
 
-from PyQt5.QtCore import QUrl, QVersionNumber, QRect
+from PyQt5.QtCore import QUrl, QVersionNumber, QRect, QPoint
 from PyQt5.QtGui import QClipboard, QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
@@ -54,7 +55,7 @@ try:
                       CSafeDumper as YamlDumper)
     YAML_C_EXT = True
 except ImportError:  # pragma: no cover
-    from yaml import (SafeLoader as YamlLoader,  # type: ignore[misc]
+    from yaml import (SafeLoader as YamlLoader,  # type: ignore[assignment]
                       SafeDumper as YamlDumper)
     YAML_C_EXT = False
 
@@ -785,30 +786,13 @@ def mimetype_extension(mimetype: str) -> Optional[str]:
 
     This mostly delegates to Python's mimetypes.guess_extension(), but backports some
     changes (via a simple override dict) which are missing from earlier Python versions.
-    Most likely, this can be dropped once the minimum Python version is raised to 3.7.
+    Most likely, this can be dropped once the minimum Python version is raised to 3.10.
     """
     overrides = {
+        # Added in 3.10
+        "application/x-hdf5": ".h5",
         # Added around 3.8
         "application/manifest+json": ".webmanifest",
-        "application/x-hdf5": ".h5",
-
-        # Added in Python 3.7
-        "application/wasm": ".wasm",
-
-        # Wrong values for Python 3.6
-        # https://bugs.python.org/issue1043134
-        # https://github.com/python/cpython/pull/14375
-        "application/octet-stream": ".bin",  # not .a
-        "application/postscript": ".ps",  # not .ai
-        "application/vnd.ms-excel": ".xls",  # not .xlb
-        "application/vnd.ms-powerpoint": ".ppt",  # not .pot
-        "application/xml": ".xsl",  # not .rdf
-        "audio/mpeg": ".mp3",  # not .mp2
-        "image/jpeg": ".jpg",  # not .jpe
-        "image/tiff": ".tiff",  # not .tif
-        "text/html": ".html",  # not .htm
-        "text/plain": ".txt",  # not .bat
-        "video/mpeg": ".mpeg",  # not .m1v
     }
     if mimetype in overrides:
         return overrides[mimetype]
@@ -857,3 +841,28 @@ def parse_rect(s: str) -> QRect:
         raise ValueError("Invalid rectangle")
 
     return rect
+
+
+def parse_point(s: str) -> QPoint:
+    """Parse a point string like 13,-42."""
+    try:
+        x, y = map(int, s.split(',', maxsplit=1))
+    except ValueError:
+        raise ValueError(f"String {s} does not match X,Y")
+
+    try:
+        return QPoint(x, y)
+    except OverflowError as e:
+        raise ValueError(e)
+
+
+def match_globs(patterns: List[str], value: str) -> Optional[str]:
+    """Match a list of glob-like patterns against a value.
+
+    Return:
+        The first matching pattern if there was a match, None with no match.
+    """
+    for pattern in patterns:
+        if fnmatch.fnmatchcase(name=value, pat=pattern):
+            return pattern
+    return None

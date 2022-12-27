@@ -613,6 +613,19 @@ class TestConfig:
         expected = {'X-Foo': 'fooval', 'X-Bar': 'barval'}
         assert conf.get_obj(option) == expected
 
+    def test_get_mutable_invalid_value(self, conf):
+        """Make sure invalid values aren't stored in mutables."""
+        option = 'keyhint.blacklist'
+        obj = conf.get_mutable_obj(option)
+        assert obj == []
+        obj.append(42)
+
+        with pytest.raises(configexc.ValidationError):
+            conf.update_mutables()
+
+        obj = conf.get_mutable_obj(option)
+        assert obj == []
+
     def test_get_obj_unknown_mutable(self, conf):
         """Make sure we don't have unknown mutable types."""
         with pytest.raises(AssertionError):
@@ -782,7 +795,7 @@ class TestContainer:
         assert len(configapi.errors) == 1
         error = configapi.errors[0]
         assert error.text == "While getting 'tabs.foobar'"
-        assert str(error.exception) == "No option 'tabs.foobar'"
+        assert str(error.exception).startswith("No option 'tabs.foobar'")
 
     def test_confapi_missing_prefix(self, container):
         configapi = types.SimpleNamespace(errors=[])
@@ -793,7 +806,7 @@ class TestContainer:
 
         error1 = configapi.errors[0]
         assert error1.text == "While getting 'content.host_blocking'"
-        assert str(error1.exception) == "No option 'content.host_blocking'"
+        assert str(error1.exception).startswith("No option 'content.host_blocking'")
 
         error2 = configapi.errors[1]
         assert error2.text == "While setting 'content.host_blocking.lists'"

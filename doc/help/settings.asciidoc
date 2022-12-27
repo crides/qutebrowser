@@ -167,11 +167,13 @@
 |<<content.hyperlink_auditing,content.hyperlink_auditing>>|Enable hyperlink auditing (`<a ping>`).
 |<<content.images,content.images>>|Load images automatically in web pages.
 |<<content.javascript.alert,content.javascript.alert>>|Show javascript alerts.
-|<<content.javascript.can_access_clipboard,content.javascript.can_access_clipboard>>|Allow JavaScript to read from or write to the clipboard.
 |<<content.javascript.can_close_tabs,content.javascript.can_close_tabs>>|Allow JavaScript to close tabs.
 |<<content.javascript.can_open_tabs_automatically,content.javascript.can_open_tabs_automatically>>|Allow JavaScript to open new tabs without user interaction.
+|<<content.javascript.clipboard,content.javascript.clipboard>>|Allow JavaScript to read from or write to the clipboard.
 |<<content.javascript.enabled,content.javascript.enabled>>|Enable JavaScript.
 |<<content.javascript.log,content.javascript.log>>|Log levels to use for JavaScript console logging messages.
+|<<content.javascript.log_message.excludes,content.javascript.log_message.excludes>>|Javascript messages to *not* show in the UI, despite a corresponding `content.javascript.log_message.levels` setting.
+|<<content.javascript.log_message.levels,content.javascript.log_message.levels>>|Javascript message sources/levels to show in the qutebrowser UI.
 |<<content.javascript.modal_dialog,content.javascript.modal_dialog>>|Use the standard JavaScript modal dialog for `alert()` and `confirm()`.
 |<<content.javascript.prompt,content.javascript.prompt>>|Show javascript prompts.
 |<<content.local_content_can_access_file_urls,content.local_content_can_access_file_urls>>|Allow locally loaded documents to access other local URLs.
@@ -186,7 +188,7 @@
 |<<content.notifications.enabled,content.notifications.enabled>>|Allow websites to show notifications.
 |<<content.notifications.presenter,content.notifications.presenter>>|What notification presenter to use for web notifications.
 |<<content.notifications.show_origin,content.notifications.show_origin>>|Whether to show the origin URL for notifications.
-|<<content.pdfjs,content.pdfjs>>|Allow pdf.js to view PDF files in the browser.
+|<<content.pdfjs,content.pdfjs>>|Display PDF files via PDF.js in the browser without showing a download prompt.
 |<<content.persistent_storage,content.persistent_storage>>|Allow websites to request persistent storage quota via `navigator.webkitPersistentStorage.requestQuota`.
 |<<content.plugins,content.plugins>>|Enable plugins in Web pages.
 |<<content.prefers_reduced_motion,content.prefers_reduced_motion>>|Request websites to minimize non-essentials animations and motion.
@@ -213,8 +215,9 @@
 |<<downloads.remove_finished,downloads.remove_finished>>|Duration (in milliseconds) to wait before removing finished downloads.
 |<<editor.command,editor.command>>|Editor (and arguments) to use for the `edit-*` commands.
 |<<editor.encoding,editor.encoding>>|Encoding to use for the editor.
+|<<editor.remove_file,editor.remove_file>>|Delete the temporary file upon closing the editor.
 |<<fileselect.folder.command,fileselect.folder.command>>|Command (and arguments) to use for selecting a single folder in forms. The command should write the selected folder path to the specified file or stdout.
-|<<fileselect.handler,fileselect.handler>>|Handler for selecting file(s) in forms. If `external`, then the commands specified by `fileselect.single_file.command` and `fileselect.multiple_files.command` are used to select one or multiple files respectively.
+|<<fileselect.handler,fileselect.handler>>|Handler for selecting file(s) in forms. If `external`, then the commands specified by `fileselect.single_file.command`, `fileselect.multiple_files.command` and `fileselect.folder.command` are used to select one file, multiple files, and folders, respectively.
 |<<fileselect.multiple_files.command,fileselect.multiple_files.command>>|Command (and arguments) to use for selecting multiple files in forms. The command should write the selected file paths to the specified file or to stdout, separated by newlines.
 |<<fileselect.single_file.command,fileselect.single_file.command>>|Command (and arguments) to use for selecting a single file in forms. The command should write the selected file path to the specified file or stdout.
 |<<fonts.completion.category,fonts.completion.category>>|Font used in the completion categories.
@@ -302,6 +305,7 @@
 |<<search.ignore_case,search.ignore_case>>|When to find text on a page case-insensitively.
 |<<search.incremental,search.incremental>>|Find text on a page incrementally, renewing the search for each typed character.
 |<<search.wrap,search.wrap>>|Wrap around at the top and bottom of the page when advancing through text matches using `:search-next` and `:search-prev`.
+|<<search.wrap_messages,search.wrap_messages>>|Display messages when advancing through text matches at the top and bottom of the page, e.g. `Search hit TOP`.
 |<<session.default_name,session.default_name>>|Name of the session to save by default.
 |<<session.lazy_restore,session.lazy_restore>>|Load a restored tab as soon as it takes focus.
 |<<spellcheck.languages,spellcheck.languages>>|Languages to use for spell checking.
@@ -339,6 +343,7 @@
 |<<tabs.show_switching_delay,tabs.show_switching_delay>>|Duration (in milliseconds) to show the tab bar before hiding it when tabs.show is set to 'switching'.
 |<<tabs.tabs_are_windows,tabs.tabs_are_windows>>|Open a new window for every tab.
 |<<tabs.title.alignment,tabs.title.alignment>>|Alignment of the text inside of tabs.
+|<<tabs.title.elide,tabs.title.elide>>|Position of ellipsis in truncated title of tabs.
 |<<tabs.title.format,tabs.title.format>>|Format to use for the tab title.
 |<<tabs.title.format_pinned,tabs.title.format_pinned>>|Format to use for the tab title for pinned tabs. The same placeholders like for `tabs.title.format` are defined.
 |<<tabs.tooltips,tabs.tooltips>>|Show tooltips on tabs.
@@ -528,9 +533,10 @@ Default:
 * +pass:[&lt;Ctrl-Return&gt;]+: +pass:[command-accept --rapid]+
 * +pass:[&lt;Ctrl-Shift-C&gt;]+: +pass:[completion-item-yank --sel]+
 * +pass:[&lt;Ctrl-Shift-Tab&gt;]+: +pass:[completion-item-focus prev-category]+
+* +pass:[&lt;Ctrl-Shift-W&gt;]+: +pass:[rl-filename-rubout]+
 * +pass:[&lt;Ctrl-Tab&gt;]+: +pass:[completion-item-focus next-category]+
 * +pass:[&lt;Ctrl-U&gt;]+: +pass:[rl-unix-line-discard]+
-* +pass:[&lt;Ctrl-W&gt;]+: +pass:[rl-unix-word-rubout]+
+* +pass:[&lt;Ctrl-W&gt;]+: +pass:[rl-rubout &quot; &quot;]+
 * +pass:[&lt;Ctrl-Y&gt;]+: +pass:[rl-yank]+
 * +pass:[&lt;Down&gt;]+: +pass:[completion-item-focus --history next]+
 * +pass:[&lt;Escape&gt;]+: +pass:[mode-leave]+
@@ -764,6 +770,7 @@ Default:
 * +pass:[&lt;Alt-B&gt;]+: +pass:[rl-backward-word]+
 * +pass:[&lt;Alt-Backspace&gt;]+: +pass:[rl-backward-kill-word]+
 * +pass:[&lt;Alt-D&gt;]+: +pass:[rl-kill-word]+
+* +pass:[&lt;Alt-E&gt;]+: +pass:[prompt-fileselect-external]+
 * +pass:[&lt;Alt-F&gt;]+: +pass:[rl-forward-word]+
 * +pass:[&lt;Alt-Shift-Y&gt;]+: +pass:[prompt-yank --sel]+
 * +pass:[&lt;Alt-Y&gt;]+: +pass:[prompt-yank]+
@@ -775,8 +782,9 @@ Default:
 * +pass:[&lt;Ctrl-H&gt;]+: +pass:[rl-backward-delete-char]+
 * +pass:[&lt;Ctrl-K&gt;]+: +pass:[rl-kill-line]+
 * +pass:[&lt;Ctrl-P&gt;]+: +pass:[prompt-open-download --pdfjs]+
+* +pass:[&lt;Ctrl-Shift-W&gt;]+: +pass:[rl-filename-rubout]+
 * +pass:[&lt;Ctrl-U&gt;]+: +pass:[rl-unix-line-discard]+
-* +pass:[&lt;Ctrl-W&gt;]+: +pass:[rl-unix-word-rubout]+
+* +pass:[&lt;Ctrl-W&gt;]+: +pass:[rl-rubout &quot; &quot;]+
 * +pass:[&lt;Ctrl-X&gt;]+: +pass:[prompt-open-download]+
 * +pass:[&lt;Ctrl-Y&gt;]+: +pass:[rl-yank]+
 * +pass:[&lt;Down&gt;]+: +pass:[prompt-item-focus next]+
@@ -2346,17 +2354,6 @@ Type: <<types,Bool>>
 
 Default: +pass:[true]+
 
-[[content.javascript.can_access_clipboard]]
-=== content.javascript.can_access_clipboard
-Allow JavaScript to read from or write to the clipboard.
-With QtWebEngine, writing the clipboard as response to a user interaction is always allowed.
-
-This setting supports link:configuring{outfilesuffix}#patterns[URL patterns].
-
-Type: <<types,Bool>>
-
-Default: +pass:[false]+
-
 [[content.javascript.can_close_tabs]]
 === content.javascript.can_close_tabs
 Allow JavaScript to close tabs.
@@ -2378,6 +2375,23 @@ This setting supports link:configuring{outfilesuffix}#patterns[URL patterns].
 Type: <<types,Bool>>
 
 Default: +pass:[false]+
+
+[[content.javascript.clipboard]]
+=== content.javascript.clipboard
+Allow JavaScript to read from or write to the clipboard.
+With QtWebEngine, writing the clipboard as response to a user interaction is always allowed.
+
+This setting supports link:configuring{outfilesuffix}#patterns[URL patterns].
+
+Type: <<types,String>>
+
+Valid values:
+
+ * +none+: Disable access to clipboard.
+ * +access+: Allow reading from and writing to the clipboard.
+ * +access-paste+: Allow accessing the clipboard and pasting clipboard content.
+
+Default: +pass:[none]+
 
 [[content.javascript.enabled]]
 === content.javascript.enabled
@@ -2404,6 +2418,38 @@ Default:
 - +pass:[info]+: +pass:[debug]+
 - +pass:[unknown]+: +pass:[debug]+
 - +pass:[warning]+: +pass:[debug]+
+
+[[content.javascript.log_message.excludes]]
+=== content.javascript.log_message.excludes
+Javascript messages to *not* show in the UI, despite a corresponding `content.javascript.log_message.levels` setting.
+Both keys and values are glob patterns, with the key matching the location of the error, and the value matching the error message.
+By default, the https://web.dev/csp/[Content security policy] violations triggered by qutebrowser's stylesheet handling are excluded, as those errors are to be expected and can't be easily handled by the underlying code.
+
+Type: <<types,Dict>>
+
+Default: 
+
+- +pass:[userscript:_qute_stylesheet]+:
+
+* +pass:[*Refused to apply inline style because it violates the following Content Security Policy directive: *]+
+
+[[content.javascript.log_message.levels]]
+=== content.javascript.log_message.levels
+Javascript message sources/levels to show in the qutebrowser UI.
+When a JavaScript message is logged from a location matching the glob pattern given in the key, and is from one of the levels listed as value, it's surfaced as a message in the qutebrowser UI.
+By default, errors happening in qutebrowser internally are shown to the user.
+
+Type: <<types,Dict>>
+
+Default: 
+
+- +pass:[qute:*]+:
+
+* +pass:[error]+
+- +pass:[userscript:*]+:
+
+* +pass:[error]+
+- +pass:[userscript:GM-*]+: empty
 
 [[content.javascript.modal_dialog]]
 === content.javascript.modal_dialog
@@ -2609,8 +2655,8 @@ Default: +pass:[true]+
 
 [[content.pdfjs]]
 === content.pdfjs
-Allow pdf.js to view PDF files in the browser.
-Note that the files can still be downloaded by clicking the download button in the pdf.js viewer.
+Display PDF files via PDF.js in the browser without showing a download prompt.
+Note that the files can still be downloaded by clicking the download button in the pdf.js viewer. With this set to `false`, the `:prompt-open-download --pdfjs` command (bound to `<Ctrl-p>` by default) can be used in the download prompt.
 
 This setting supports link:configuring{outfilesuffix}#patterns[URL patterns].
 
@@ -2753,6 +2799,7 @@ Valid values:
  * +js-string-replaceall+
  * +js-globalthis+
  * +js-object-fromentries+
+ * +js-array-at+
  * +misc-krunker+
  * +misc-mathml-darkmode+
 
@@ -2957,6 +3004,14 @@ Type: <<types,Encoding>>
 
 Default: +pass:[utf-8]+
 
+[[editor.remove_file]]
+=== editor.remove_file
+Delete the temporary file upon closing the editor.
+
+Type: <<types,Bool>>
+
+Default: +pass:[true]+
+
 [[fileselect.folder.command]]
 === fileselect.folder.command
 Command (and arguments) to use for selecting a single folder in forms. The command should write the selected folder path to the specified file or stdout.
@@ -2975,7 +3030,7 @@ Default:
 
 [[fileselect.handler]]
 === fileselect.handler
-Handler for selecting file(s) in forms. If `external`, then the commands specified by `fileselect.single_file.command` and `fileselect.multiple_files.command` are used to select one or multiple files respectively.
+Handler for selecting file(s) in forms. If `external`, then the commands specified by `fileselect.single_file.command`, `fileselect.multiple_files.command` and `fileselect.folder.command` are used to select one file, multiple files, and folders, respectively.
 
 Type: <<types,String>>
 
@@ -3446,6 +3501,7 @@ Default:
 * +pass:[[role=&quot;menuitem&quot;\]]+
 * +pass:[[role=&quot;menuitemcheckbox&quot;\]]+
 * +pass:[[role=&quot;menuitemradio&quot;\]]+
+* +pass:[[role=&quot;treeitem&quot;\]]+
 * +pass:[[ng-click\]]+
 * +pass:[[ngClick\]]+
 * +pass:[[data-ng-click\]]+
@@ -3999,6 +4055,14 @@ Type: <<types,Bool>>
 
 Default: +pass:[true]+
 
+[[search.wrap_messages]]
+=== search.wrap_messages
+Display messages when advancing through text matches at the top and bottom of the page, e.g. `Search hit TOP`.
+
+Type: <<types,Bool>>
+
+Default: +pass:[true]+
+
 [[session.default_name]]
 === session.default_name
 Name of the session to save by default.
@@ -4125,14 +4189,17 @@ Valid values:
  * +scroll+: Percentage of the current page position like `10%`.
  * +scroll_raw+: Raw percentage of the current page position like `10`.
  * +history+: Display an arrow when possible to go back/forward in history.
+ * +search_match+: A match count when searching, e.g. `Match [2/10]`.
  * +tabs+: Current active tab, e.g. `2`.
  * +keypress+: Display pressed keys when composing a vi command.
  * +progress+: Progress bar for the current page loading.
  * +text:foo+: Display the static text after the colon, `foo` in the example.
+ * +clock+: Display current time. The format can be changed by adding a format string via `clock:...`. For supported format strings, see https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes[the Python datetime documentation].
 
 Default:
 
 - +pass:[keypress]+
+- +pass:[search_match]+
 - +pass:[url]+
 - +pass:[scroll]+
 - +pass:[history]+
@@ -4504,6 +4571,21 @@ Valid values:
 
 Default: +pass:[left]+
 
+[[tabs.title.elide]]
+=== tabs.title.elide
+Position of ellipsis in truncated title of tabs.
+
+Type: <<types,ElidePosition>>
+
+Valid values:
+
+ * +left+
+ * +right+
+ * +middle+
+ * +none+
+
+Default: +pass:[right]+
+
 [[tabs.title.format]]
 === tabs.title.format
 Format to use for the tab title.
@@ -4796,6 +4878,7 @@ When setting from a string, `1`, `yes`, `on` and `true` count as true, while `0`
 
 When setting from a string, pass a json-like dict, e.g. `{"key", "value"}`.
 |Directory|A directory on the local filesystem.
+|ElidePosition|Position of ellipsis in truncated text.
 |Encoding|Setting for a python encoding.
 |File|A file on the local filesystem.
 |FlagList|A list of flags.

@@ -336,7 +336,7 @@ def test_command_on_start(request, quteproc_new):
     quteproc_new.wait_for_quit()
 
 
-@pytest.mark.parametrize('python', ['python2', 'python3.5'])
+@pytest.mark.parametrize('python', ['python2', 'python3.6'])
 def test_launching_with_old_python(python):
     try:
         proc = subprocess.run(
@@ -346,7 +346,7 @@ def test_launching_with_old_python(python):
     except FileNotFoundError:
         pytest.skip(f"{python} not found")
     assert proc.returncode == 1
-    error = "At least Python 3.6.1 is required to run qutebrowser"
+    error = "At least Python 3.7 is required to run qutebrowser"
     assert proc.stderr.decode('ascii').startswith(error)
 
 
@@ -723,7 +723,8 @@ def test_dark_mode(webengine_versions, quteproc_new, request,
     )
 
 
-def test_dark_mode_mathml(quteproc_new, request, qtbot):
+@pytest.mark.parametrize("suffix", ["inline", "display"])
+def test_dark_mode_mathml(quteproc_new, request, qtbot, suffix):
     if not request.config.webengine:
         pytest.skip("Skipped with QtWebKit")
 
@@ -734,7 +735,7 @@ def test_dark_mode_mathml(quteproc_new, request, qtbot):
     ]
     quteproc_new.start(args)
 
-    quteproc_new.open_path('data/darkmode/mathml.html')
+    quteproc_new.open_path(f'data/darkmode/mathml-{suffix}.html')
     quteproc_new.wait_for_js('Image loaded')
 
     # First make sure loading finished by looking outside of the image
@@ -821,7 +822,7 @@ def test_unavailable_backend(request, quteproc_new):
 def test_json_logging_without_debug(request, quteproc_new, runtime_tmpdir):
     args = _base_args(request.config) + ['--temp-basedir', ':quit']
     args.remove('--debug')
-    args.remove('about:blank')  # interfers with :quit at the end
+    args.remove('about:blank')  # interferes with :quit at the end
 
     quteproc_new.exit_expected = True
     quteproc_new.start(args, env={'XDG_RUNTIME_DIR': str(runtime_tmpdir)})

@@ -505,7 +505,7 @@ class TestYaml:
     def unreadable_autoconfig(self, autoconfig):
         autoconfig.fobj.ensure()
         autoconfig.fobj.chmod(0)
-        if os.access(str(autoconfig.fobj), os.R_OK):
+        if os.access(autoconfig.fobj, os.R_OK):
             # Docker container or similar
             pytest.skip("File was still readable")
 
@@ -851,9 +851,8 @@ def confpy(tmp_path, config_tmpdir, data_tmpdir, config_stub, key_config_stub):
     return ConfPy(tmp_path)
 
 
+@pytest.mark.usefixtures('config_stub', 'key_config_stub')
 class TestConfigPyModules:
-
-    pytestmark = pytest.mark.usefixtures('config_stub', 'key_config_stub')
 
     @pytest.fixture
     def qbmodulepy(self, tmp_path):
@@ -911,11 +910,10 @@ class TestConfigPyModules:
         assert sys.path.count(tmp_path) == 1
 
 
+@pytest.mark.usefixtures('config_stub', 'key_config_stub')
 class TestConfigPy:
 
     """Tests for ConfigAPI and read_config_py()."""
-
-    pytestmark = pytest.mark.usefixtures('config_stub', 'key_config_stub')
 
     def test_assertions(self, confpy):
         """Make sure assertions in config.py work for these tests."""
@@ -1059,6 +1057,15 @@ class TestConfigPy:
         confpy.read()
         assert config.instance.get_obj('aliases')['foo'] == 'message-info foo'
         assert config.instance.get_obj('aliases')['bar'] == 'message-info bar'
+
+    def test_mutating_invalid_value(self, confpy):
+        confpy.write('c.url.searchengines["maps"] = "https://www.google.com/maps?q=%s"')
+        error = confpy.read(error=True)
+
+        assert error.text == "While updating mutated values"
+        assert isinstance(error.exception, configexc.ValidationError)
+
+        assert 'maps' not in config.instance.get_obj("url.searchengines")
 
     @pytest.mark.parametrize('option, value', [
         ('content.user_stylesheets', 'style.css'),

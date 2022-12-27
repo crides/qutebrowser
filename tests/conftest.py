@@ -22,6 +22,7 @@
 import os
 import pathlib
 import sys
+import ssl
 
 import pytest
 import hypothesis
@@ -111,6 +112,10 @@ def _apply_platform_markers(config, item):
          pytest.mark.skipif,
          sys.getfilesystemencoding() == 'ascii',
          "Skipped because of ASCII locale"),
+        ('qtwebkit_openssl3_skip',
+         pytest.mark.skipif,
+         not config.webengine and ssl.OPENSSL_VERSION_INFO[0] == 3,
+         "Failing due to cheroot: https://github.com/cherrypy/cheroot/issues/346"),
     ]
 
     for searched_marker, new_marker_kind, condition, default_reason in markers:
@@ -335,9 +340,9 @@ def check_yaml_c_exts():
     """Make sure PyYAML C extensions are available on CI.
 
     Not available yet with a nightly Python, see:
-    https://github.com/yaml/pyyaml/issues/416
+    https://github.com/yaml/pyyaml/issues/630
     """
-    if testutils.ON_CI and sys.version_info[:2] != (3, 10):
+    if testutils.ON_CI and sys.version_info[:2] != (3, 11):
         from yaml import CLoader  # pylint: disable=unused-import
 
 

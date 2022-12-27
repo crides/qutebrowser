@@ -92,7 +92,7 @@ def raise_window(window, alert=True):
     window.setWindowState(window.windowState() | Qt.WindowActive)
     window.raise_()
     # WORKAROUND for https://bugreports.qt.io/browse/QTBUG-69568
-    QCoreApplication.processEvents(  # type: ignore[call-overload]
+    QCoreApplication.processEvents(
         QEventLoop.ExcludeUserInputEvents | QEventLoop.ExcludeSocketNotifiers)
 
     if not sip.isdeleted(window):
@@ -267,8 +267,8 @@ class MainWindow(QWidget):
         log.init.debug("Initializing modes...")
         modeman.init(win_id=self.win_id, parent=self)
 
-        self._commandrunner = runners.CommandRunner(self.win_id,
-                                                    partial_match=True)
+        self._commandrunner = runners.CommandRunner(
+            self.win_id, partial_match=True, find_similar=True)
 
         self._keyhint = keyhintwidget.KeyHintView(self.win_id, self)
         self._add_overlay(self._keyhint, self._keyhint.update_geometry)
@@ -430,7 +430,7 @@ class MainWindow(QWidget):
             self._set_decoration(config.val.window.hide_decoration)
 
     def _add_widgets(self):
-        """Add or readd all widgets to the VBox."""
+        """Add or re-add all widgets to the VBox."""
         self._vbox.removeWidget(self.tabbed_browser.widget)
         self._vbox.removeWidget(self._downloadview)
         self._vbox.removeWidget(self.status)
@@ -557,6 +557,9 @@ class MainWindow(QWidget):
         self.tabbed_browser.cur_load_status_changed.connect(
             self.status.url.on_load_status_changed)
 
+        self.tabbed_browser.cur_search_match_changed.connect(
+            self.status.search_match.set_match)
+
         self.tabbed_browser.cur_caret_selection_toggled.connect(
             self.status.on_caret_selection_toggled)
 
@@ -581,11 +584,20 @@ class MainWindow(QWidget):
 
     def _set_decoration(self, hidden):
         """Set the visibility of the window decoration via Qt."""
-        window_flags: int = Qt.Window
+        window_flags = cast(Qt.WindowFlags, Qt.Window)
         refresh_window = self.isVisible()
         if hidden:
             window_flags |= Qt.CustomizeWindowHint | Qt.NoDropShadowWindowHint
-        self.setWindowFlags(cast(Qt.WindowFlags, window_flags))
+        self.setWindowFlags(window_flags)
+
+        if utils.is_mac and hidden:
+            from ctypes import c_void_p
+            # pylint: disable=import-error
+            from objc import objc_object
+            from AppKit import NSWindowStyleMaskResizable
+            win = objc_object(c_void_p=c_void_p(int(self.winId()))).window()
+            win.setStyleMask_(win.styleMask() | NSWindowStyleMaskResizable)
+
         if refresh_window:
             self.show()
 
@@ -594,9 +606,7 @@ class MainWindow(QWidget):
         if not config.val.content.fullscreen.window:
             if on:
                 self.state_before_fullscreen = self.windowState()
-                self.setWindowState(
-                    Qt.WindowFullScreen |  # type: ignore[arg-type]
-                    self.state_before_fullscreen)  # type: ignore[operator]
+                self.setWindowState(Qt.WindowFullScreen | self.state_before_fullscreen)
             elif self.isFullScreen():
                 self.setWindowState(self.state_before_fullscreen)
         log.misc.debug('on: {}, state before fullscreen: {}'.format(
@@ -622,7 +632,7 @@ class MainWindow(QWidget):
         super().resizeEvent(e)
         self._update_overlay_geometries()
         self._downloadview.updateGeometry()
-        self.tabbed_browser.widget.tabBar().refresh()
+        self.tabbed_browser.widget.tab_bar().refresh()
 
     def showEvent(self, e):
         """Extend showEvent to register us as the last-visible-main-window.

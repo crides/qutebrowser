@@ -19,7 +19,7 @@
 
 """Completion category for filesystem paths.
 
-NOTE: This module deliberatly uses os.path rather than pathlib, because of how
+NOTE: This module deliberately uses os.path rather than pathlib, because of how
 it interacts with the completion, which operates on strings. For example, we
 need to be able to tell the difference between "~/input" and "~/input/". Also,
 if we get "~/input", we want to glob "~/input*" rather than "~/input/*" which
@@ -65,7 +65,7 @@ class FilePathCategory(QAbstractListModel):
         try:
             return glob.glob(glob.escape(val) + '*')
         except ValueError as e:  # pragma: no cover
-            # e.g. "embedded null byte" with \x00 on Python 3.6 and 3.7
+            # e.g. "embedded null byte" with \x00 on Python 3.7
             log.completion.debug(f"Failed to glob: {e}")
             return []
 

@@ -90,7 +90,7 @@ class TreeTabbedBrowser(TabbedBrowser):
         self.widget.tabCloseRequested.connect(self.on_tab_close_requested)
         self.widget.new_tab_requested.connect(self.tabopen)
         self.widget.currentChanged.connect(self._on_current_changed)
-        self.cur_fullscreen_requested.connect(self.widget.tabBar().maybe_hide)
+        self.cur_fullscreen_requested.connect(self.widget.tab_bar().maybe_hide)
         self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._reset_stack_counters()
 

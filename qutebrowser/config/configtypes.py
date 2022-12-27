@@ -109,6 +109,8 @@ class ValidValues:
         values: A list with the allowed untransformed values.
         descriptions: A dict with value/desc mappings.
         generate_docs: Whether to show the values in the docs.
+        others_permitted: Whether arbitrary values are permitted.
+                          Used to show buttons in qute://settings.
     """
 
     def __init__(
@@ -119,12 +121,14 @@ class ValidValues:
                 Tuple[str, Optional[str]],
             ],
             generate_docs: bool = True,
+            others_permitted: bool = False
     ) -> None:
         if not values:
             raise ValueError("ValidValues with no values makes no sense!")
         self.descriptions: DictType[str, str] = {}
         self.values: ListType[str] = []
         self.generate_docs = generate_docs
+        self.others_permitted = others_permitted
         for value in values:
             if isinstance(value, str):
                 # Value without description
@@ -1638,7 +1642,9 @@ class Proxy(BaseType):
         super().__init__(none_ok=none_ok, completions=completions)
         self.valid_values = ValidValues(
             ('system', "Use the system wide proxy."),
-            ('none', "Don't use any proxy"))
+            ('none', "Don't use any proxy"),
+            others_permitted=True,
+        )
 
     def to_py(
             self,
@@ -1807,6 +1813,18 @@ class TextAlignment(MappingType):
         'left': (Qt.AlignLeft, None),
         'right': (Qt.AlignRight, None),
         'center': (Qt.AlignCenter, None),
+    }
+
+
+class ElidePosition(MappingType):
+
+    """Position of ellipsis in truncated text."""
+
+    MAPPING = {
+        'left': (Qt.ElideLeft, None),
+        'right': (Qt.ElideRight, None),
+        'middle': (Qt.ElideMiddle, None),
+        'none': (Qt.ElideNone, None),
     }
 
 
@@ -2024,6 +2042,6 @@ class StatusbarWidget(String):
     """
 
     def _validate_valid_values(self, value: str) -> None:
-        if value.startswith("text:"):
+        if value.startswith("text:") or value.startswith("clock:"):
             return
         super()._validate_valid_values(value)

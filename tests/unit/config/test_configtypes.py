@@ -19,7 +19,6 @@
 """Tests for qutebrowser.config.configtypes."""
 
 import re
-import sys
 import json
 import math
 import warnings
@@ -224,6 +223,7 @@ class TestAll:
         """Patch aliases so Command works."""
         config_stub.val.aliases = {}
 
+    # pylint: disable-next=too-many-function-args
     @pytest.fixture(params=list(gen_classes()))
     def klass(self, request):
         return request.param
@@ -255,11 +255,14 @@ class TestAll:
                 configtypes.PercOrInt,  # ditto
         ]:
             return
-        elif (isinstance(klass, functools.partial) and klass.func in [
-                configtypes.ListOrValue, configtypes.List, configtypes.Dict]):
-            # ListOrValue: "- /" -> "/"
-            # List: "- /" -> ["/"]
-            # Dict: '{":": "A"}' -> ':: A'
+
+        # Dict and List deserialize to yaml but serialize to json, so we can't
+        # do a naive round trip test with them. For example:
+        #   ListOrValue: "- /" -> "/"
+        #   List: "- /" -> ["/"]
+        #   Dict: ':: A' -> '{":": "A"}'
+        compound_types = (configtypes.ListOrValue, configtypes.List, configtypes.Dict)
+        if isinstance(typ, compound_types):
             return
 
         assert converted == s
@@ -1501,12 +1504,8 @@ class TestRegex:
         pytest.param('(' * 500, id='too many parens'),
         pytest.param(r'foo\Xbar', id='invalid escape X'),
         pytest.param(r'foo\Cbar', id='invalid escape C'),
-        pytest.param(r'[[]]', id='nested set', marks=pytest.mark.skipif(
-            sys.hexversion < 0x03070000,
-            reason="Warning was added in Python 3.7")),
-        pytest.param(r'[a||b]', id='set operation', marks=pytest.mark.skipif(
-            sys.hexversion < 0x03070000,
-            reason="Warning was added in Python 3.7")),
+        pytest.param(r'[[]]', id='nested set'),
+        pytest.param(r'[a||b]', id='set operation'),
     ])
     def test_to_py_invalid(self, klass, val):
         with pytest.raises(configexc.ValidationError):

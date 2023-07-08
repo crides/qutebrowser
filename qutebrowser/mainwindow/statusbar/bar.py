@@ -199,6 +199,7 @@ class StatusBar(QWidget):
         self.url = url.UrlText()
         self.percentage = percentage.Percentage()
         self.backforward = backforward.Backforward()
+        self.counted_backforward = backforward.CountedBackforward()
         self.tabindex = tabindex.TabIndex()
         self.keystring = keystring.KeyString()
         self.prog = progress.Progress(self)
@@ -222,6 +223,8 @@ class StatusBar(QWidget):
             return self.percentage
         elif key == 'history':
             return self.backforward
+        elif key == 'history_counted':
+            return self.counted_backforward
         elif key == 'tabs':
             return self.tabindex
         elif key == 'keypress':
@@ -261,7 +264,7 @@ class StatusBar(QWidget):
 
             if segment == 'scroll_raw':
                 widget.set_raw()
-            elif segment in ('history', 'progress'):
+            elif segment in ('history', 'progress', 'history_counted'):
                 widget.enabled = True
                 if tab:
                     widget.on_tab_changed(tab)
@@ -285,9 +288,10 @@ class StatusBar(QWidget):
         # Start with widgets hidden and show them when needed
         for widget in [self.url, self.percentage,
                        self.backforward, self.tabindex,
+                       self.counted_backforward,
                        self.keystring, self.prog, self.clock, *self._text_widgets]:
             assert isinstance(widget, QWidget)
-            if widget in [self.prog, self.backforward]:
+            if widget in [self.prog, self.backforward, self.counted_backforward]:
                 widget.enabled = False  # type: ignore[attr-defined]
             widget.hide()
             self._hbox.removeWidget(widget)
@@ -431,6 +435,7 @@ class StatusBar(QWidget):
         self.prog.on_tab_changed(tab)
         self.percentage.on_tab_changed(tab)
         self.backforward.on_tab_changed(tab)
+        self.counted_backforward.on_tab_changed(tab)
         self.maybe_hide()
         assert tab.is_private == self._color_flags.private
 

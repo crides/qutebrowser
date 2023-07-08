@@ -50,3 +50,35 @@ class Backforward(textbase.TextBase):
             text = '[' + text + ']'
         self.setText(text)
         self.setVisible(bool(text) and self.enabled)
+
+class CountedBackforward(textbase.TextBase):
+
+    """Shows navigation indicator (if you can go backward and/or forward)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.enabled = False
+
+    def on_tab_cur_url_changed(self, tabs):
+        """Called on URL changes."""
+        tab = tabs.widget.currentWidget()
+        if tab is None:  # pragma: no cover
+            self.setText('')
+            self.hide()
+            return
+        self.on_tab_changed(tab)
+
+    def on_tab_changed(self, tab):
+        """Update the text based on the given tab."""
+        text = ''
+        hist = tab.history
+        if hist.can_go_back():
+            text += f'{len(hist.back_items())} <'
+        if hist.can_go_forward():
+            if text:
+                text += " "
+            text += f'> {len(hist.forward_items())}'
+        if text:
+            text = '[' + text + ']'
+        self.setText(text)
+        self.setVisible(bool(text) and self.enabled)

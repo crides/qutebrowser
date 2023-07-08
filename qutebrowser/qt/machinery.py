@@ -23,7 +23,7 @@ from typing import Optional, Dict
 # sed -i 's/_DEFAULT_WRAPPER = "PyQt5"/_DEFAULT_WRAPPER = "PyQt6"/' qutebrowser/qt/machinery.py
 #
 # Users: Set the QUTE_QT_WRAPPER environment variable to change the default wrapper.
-_DEFAULT_WRAPPER = "PyQt5"
+_DEFAULT_WRAPPER = "PyQt6"
 
 WRAPPERS = [
     "PyQt6",

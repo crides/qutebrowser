@@ -27,11 +27,11 @@ import shutil
 import pathlib
 from typing import Any, Iterable, MutableMapping, MutableSequence, Optional, Union, cast
 
-from PyQt5.QtCore import Qt, QUrl, QObject, QPoint, QTimer, QDateTime
+from qutebrowser.qt.core import Qt, QUrl, QObject, QPoint, QTimer, QDateTime
 import yaml
 
 from qutebrowser.utils import (standarddir, objreg, qtutils, log, message,
-                               utils, usertypes, version)
+                               utils, usertypes)
 from qutebrowser.api import cmdutils
 from qutebrowser.config import config, configfiles
 from qutebrowser.completion.models import miscmodels
@@ -64,12 +64,7 @@ def init(parent=None):
 
     # WORKAROUND for https://github.com/qutebrowser/qutebrowser/issues/5359
     backup_path = base_path / 'before-qt-515'
-
-    if objects.backend == usertypes.Backend.QtWebEngine:
-        webengine_version = version.qtwebengine_versions().webengine
-        do_backup = webengine_version >= utils.VersionNumber(5, 15)
-    else:
-        do_backup = False
+    do_backup = objects.backend == usertypes.Backend.QtWebEngine
 
     if base_path.exists() and not backup_path.exists() and do_backup:
         backup_path.mkdir()
@@ -225,7 +220,7 @@ class SessionManager(QObject):
             # QtWebEngine
             user_data = None
 
-        data['last_visited'] = item.lastVisited().toString(Qt.ISODate)
+        data['last_visited'] = item.lastVisited().toString(Qt.DateFormat.ISODate)
 
         if tab.history.current_idx() == idx:
             pos = tab.scroller.pos_px()
@@ -250,9 +245,6 @@ class SessionManager(QObject):
             active: Whether the tab is currently active.
             with_history: Include the tab's history.
         """
-        # FIXME understand why this happens
-        if tab is None:
-            return {}
         data: _JsonType = {'history': []}
         if active:
             data['active'] = True
@@ -297,29 +289,13 @@ class SessionManager(QObject):
             if getattr(active_window, 'win_id', None) == win_id:
                 win_data['active'] = True
             win_data['geometry'] = bytes(main_window.saveGeometry())
+            win_data['tabs'] = []
             if tabbed_browser.is_private:
                 win_data['private'] = True
-
-            if tabbed_browser.is_treetabbedbrowser:
-                # a dict where keys are node UIDs, and values are dicts
-                # with tab data (the result of _save_tab) and a list of
-                # children UIDs
-                tree_data = {}
-                root_node = tabbed_browser.widget.tree_root
-                for i, node in enumerate(root_node.traverse(), -1):
-                    node_data = {}
-                    active = i == tabbed_browser.widget.currentIndex()
-                    win_data['tabs'].append(self._save_tab(tab, active, with_history=with_history))
-                    node_data['tab'] = self._save_tab(node.value, active)
-                    node_data['children'] = [c.uid for c in node.children]
-                    node_data['collapsed'] = node.collapsed
-                    tree_data[node.uid] = node_data
-                win_data['tree'] = tree_data
-            else:
-                win_data['tabs'] = []
-                for i, tab in enumerate(tabbed_browser.widgets()):
-                    active = i == tabbed_browser.widget.currentIndex()
-                    win_data['tabs'].append(self._save_tab(tab, active))
+            for i, tab in enumerate(tabbed_browser.widgets()):
+                active = i == tabbed_browser.widget.currentIndex()
+                win_data['tabs'].append(self._save_tab(tab, active,
+                                                       with_history=with_history))
             data['windows'].append(win_data)
         return data
 
@@ -469,7 +445,7 @@ class SessionManager(QObject):
             if histentry.get("last_visited"):
                 last_visited: Optional[QDateTime] = QDateTime.fromString(
                     histentry.get("last_visited"),
-                    Qt.ISODate,
+                    Qt.DateFormat.ISODate,
                 )
             else:
                 last_visited = None
@@ -525,7 +501,6 @@ class SessionManager(QObject):
             child.parent = root_node
 
         return tab_to_focus
-
     def _load_window(self, win):
         """Turn yaml data into windows."""
         window = mainwindow.MainWindow(geometry=win['geometry'],
@@ -534,7 +509,6 @@ class SessionManager(QObject):
         tabbed_browser = objreg.get('tabbed-browser', scope='window',
                                     window=window.win_id)
         tab_to_focus = None
-
         # plain_tabs is used in case the saved session contains a tree and
         # tree-tabs is not enabled, or if the saved session contains normal
         # tabs
@@ -560,6 +534,7 @@ class SessionManager(QObject):
         if tab_to_focus is not None:
             tabbed_browser.widget.setCurrentIndex(tab_to_focus)
 
+        window.show()
         if win.get('active', False):
             QTimer.singleShot(0, tabbed_browser.widget.activateWindow)
 
@@ -639,19 +614,17 @@ def session_load(name: str, *,
     except SessionError as e:
         raise cmdutils.CommandError("Error while loading session: {}"
                                     .format(e))
-    else:
-        if clear:
-            for win in old_windows:
-                win.close()
-        if delete:
-            try:
-                session_manager.delete(name)
-            except SessionError as e:
-                log.sessions.exception("Error while deleting session!")
-                raise cmdutils.CommandError("Error while deleting session: {}"
-                                            .format(e))
-            else:
-                log.sessions.debug("Loaded & deleted session {}.".format(name))
+    if clear:
+        for win in old_windows:
+            win.close()
+    if delete:
+        try:
+            session_manager.delete(name)
+        except SessionError as e:
+            log.sessions.exception("Error while deleting session!")
+            raise cmdutils.CommandError("Error while deleting session: {}"
+                                        .format(e))
+        log.sessions.debug("Loaded & deleted session {}.".format(name))
 
 
 @cmdutils.register()
@@ -697,11 +670,10 @@ def session_save(name: ArgType = default, *,
                                         with_history=not no_history)
     except SessionError as e:
         raise cmdutils.CommandError("Error while saving session: {}".format(e))
+    if quiet:
+        log.sessions.debug("Saved session {}.".format(name))
     else:
-        if quiet:
-            log.sessions.debug("Saved session {}.".format(name))
-        else:
-            message.info("Saved session {}.".format(name))
+        message.info("Saved session {}.".format(name))
 
 
 @cmdutils.register()
@@ -724,8 +696,7 @@ def session_delete(name: str, *, force: bool = False) -> None:
         log.sessions.exception("Error while deleting session!")
         raise cmdutils.CommandError("Error while deleting session: {}"
                                     .format(e))
-    else:
-        log.sessions.debug("Deleted session {}.".format(name))
+    log.sessions.debug("Deleted session {}.".format(name))
 
 
 def load_default(name):

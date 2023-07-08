@@ -23,8 +23,8 @@ import collections
 import dataclasses
 import datetime
 from typing import List, Dict
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtCore import pyqtSlot, QUrl
+from qutebrowser.qt.widgets import QSizePolicy
+from qutebrowser.qt.core import pyqtSlot, QUrl
 
 from qutebrowser.config import config
 from qutebrowser.mainwindow.tabbedbrowser import TabbedBrowser
@@ -91,7 +91,7 @@ class TreeTabbedBrowser(TabbedBrowser):
         self.widget.new_tab_requested.connect(self.tabopen)
         self.widget.currentChanged.connect(self._on_current_changed)
         self.cur_fullscreen_requested.connect(self.widget.tab_bar().maybe_hide)
-        self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._reset_stack_counters()
 
     def _remove_tab(self, tab, *, add_undo=True, new_undo=True, crashed=False):

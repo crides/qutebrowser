@@ -21,9 +21,9 @@
 
 from typing import Optional
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QSize
-from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtWidgets import QSizePolicy, QWidget
+from qutebrowser.qt.core import pyqtSignal, pyqtSlot, Qt, QSize
+from qutebrowser.qt.gui import QKeyEvent
+from qutebrowser.qt.widgets import QSizePolicy, QWidget
 
 from qutebrowser.keyinput import modeman, modeparsers
 from qutebrowser.api import cmdutils
@@ -33,7 +33,7 @@ from qutebrowser.utils import usertypes, log, objreg, message, utils
 from qutebrowser.config import config
 
 
-class Command(misc.MinimalLineEditMixin, misc.CommandLineEdit):
+class Command(misc.CommandLineEdit):
 
     """The commandline part of the statusbar.
 
@@ -63,19 +63,29 @@ class Command(misc.MinimalLineEditMixin, misc.CommandLineEdit):
     def __init__(self, *, win_id: int,
                  private: bool,
                  parent: QWidget = None) -> None:
-        misc.CommandLineEdit.__init__(self, parent=parent)
-        misc.MinimalLineEditMixin.__init__(self)
+        super().__init__(parent)
         self._win_id = win_id
         if not private:
             command_history = objreg.get('command-history')
             self.history.history = command_history.data
             self.history.changed.connect(command_history.changed)
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Ignored)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Ignored)
 
         self.cursorPositionChanged.connect(self.update_completion)
         self.textChanged.connect(self.update_completion)
         self.textChanged.connect(self.updateGeometry)
         self.textChanged.connect(self._incremental_search)
+
+        self.setStyleSheet(
+            """
+            QLineEdit {
+                border: 0px;
+                padding-left: 1px;
+                background-color: transparent;
+            }
+            """
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
 
     def _handle_search(self) -> bool:
         """Check if the currently entered text is a search, and if so, run it.
@@ -253,21 +263,27 @@ class Command(misc.MinimalLineEditMixin, misc.CommandLineEdit):
         super().setText(text)
 
     def keyPressEvent(self, e: QKeyEvent) -> None:
-        """Override keyPressEvent to ignore Return key presses.
+        """Override keyPressEvent to ignore Return key presses, and add Shift-Ins.
 
         If this widget is focused, we are in passthrough key mode, and
         Enter/Shift+Enter/etc. will cause QLineEdit to think it's finished
         without command_accept to be called.
         """
         text = self.text()
-        if text in modeparsers.STARTCHARS and e.key() == Qt.Key_Backspace:
+        if text in modeparsers.STARTCHARS and e.key() == Qt.Key.Key_Backspace:
             e.accept()
             modeman.leave(self._win_id, usertypes.KeyMode.command,
                           'prefix deleted')
-            return
-        if e.key() == Qt.Key_Return:
+        elif e.key() == Qt.Key.Key_Return:
             e.ignore()
-            return
+        elif e.key() == Qt.Key.Key_Insert and e.modifiers() == Qt.KeyboardModifier.ShiftModifier:  # type: ignore[comparison-overlap]
+            try:
+                text = utils.get_clipboard(selection=True, fallback=True)
+            except utils.ClipboardError:
+                e.ignore()
+            else:
+                e.accept()
+                self.insert(text)
         else:
             super().keyPressEvent(e)
 

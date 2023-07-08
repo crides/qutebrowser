@@ -245,6 +245,8 @@ class SessionManager(QObject):
             active: Whether the tab is currently active.
             with_history: Include the tab's history.
         """
+        if tab is None:
+            return {}
         data: _JsonType = {'history': []}
         if active:
             data['active'] = True
@@ -289,13 +291,25 @@ class SessionManager(QObject):
             if getattr(active_window, 'win_id', None) == win_id:
                 win_data['active'] = True
             win_data['geometry'] = bytes(main_window.saveGeometry())
-            win_data['tabs'] = []
-            if tabbed_browser.is_private:
-                win_data['private'] = True
-            for i, tab in enumerate(tabbed_browser.widgets()):
-                active = i == tabbed_browser.widget.currentIndex()
-                win_data['tabs'].append(self._save_tab(tab, active,
-                                                       with_history=with_history))
+            if tabbed_browser.is_treetabbedbrowser:
+                # a dict where keys are node UIDs, and values are dicts
+                # with tab data (the result of _save_tab) and a list of
+                # children UIDs
+                tree_data = {}
+                root_node = tabbed_browser.widget.tree_root
+                for i, node in enumerate(root_node.traverse(), -1):
+                    node_data = {}
+                    active = i == tabbed_browser.widget.currentIndex()
+                    node_data['tab'] = self._save_tab(node.value, active)
+                    node_data['children'] = [c.uid for c in node.children]
+                    node_data['collapsed'] = node.collapsed
+                    tree_data[node.uid] = node_data
+                win_data['tree'] = tree_data
+            else:
+                win_data['tabs'] = []
+                for i, tab in enumerate(tabbed_browser.widgets()):
+                    active = i == tabbed_browser.widget.currentIndex()
+                    win_data['tabs'].append(self._save_tab(tab, active))
             data['windows'].append(win_data)
         return data
 
